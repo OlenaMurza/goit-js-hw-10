@@ -1,44 +1,61 @@
-import './css/styles.css';
-
-
-
-const countriesNameInput = document.querySelector('#search-box');
-const countriesList = document.querySelector('.country-list');
-const countriesInfo = document.querySelector('.country-info');
+import './css/styles.css'
+import { fetchCountries } from './fetchCountries'
+import Notiflix from 'notiflix'
+import debounce from 'lodash.debounce'
 
 const DEBOUNCE_DELAY = 300;
 
-//// ВИКЛИК HTTP
-function fetchCountries(name) {
-    const BASE_URL = 'https://restcountries.com/v3.1/name/united';
-    const KEY = "XJlq9OFMcHAy8pAQK7xj";
-    const options = {
-        heders: {
-            Authorization: `Bearer ${KEY}`
-        }
-    }
+const countriesNameInput = document.querySelector('#search-box')
+const countriesList = document.querySelector('.country-list')
+const countriesInfo = document.querySelector('.country-info')
 
-    return fetch(`${BASE_URL}`, options).then(resp => { if (!resp.ok) {
-        throw new Error(resp.statusText)
-    }
-        
-        return resp.json()
+countriesNameInput.addEventListener('input', debounce(onInputChange, DEBOUNCE_DELAY));
+
+function onInputChange() {
+  const name = countriesNameInput.value.trim();
+
+  if (name === '') {
+    return (countriesList.innerHTML = ''),
+  (countriesInfo.innerHTML = '')
+  }
+
+  fetchCountries(name)
+    .then(countries => {
+      countriesList.innerHTML = ''
+      countriesInfo.innerHTML = ''
+      if (countries.length === 1) {
+        countriesList.insertAdjacentHTML('beforeend', createMarkupList(countries))
+        countriesInfo.insertAdjacentHTML('beforeend', createMarkupInfo(countries))
+      } else if (countries.length >= 10) {
+        alertTooManyMatches()
+      } else {
+        countriesList.insertAdjacentHTML('beforeend', createMarkupList(countries))
+      }
     })
+    .catch(alertWrongName)
 }
-fetchCountries().then(data => createMarkup(data))
-////
+       
+function createMarkupList(countries) {
+    const markup = countries.map(
+        ({ name, flags }) => {
+            return `
+      <li class="country-list__item">
+        <img class="country-list__img" 
+          src="${flags.svg}" 
+          alt="${name.official}" 
+          width="60" 
+          height="40">
+       <h2 class="country-list_name">${name.official}</h2>
+      </li> `
+        })
+    .join('')
+    return markup
+    }   
 
-//// фУНКЦІЯ, ЯКА ГЕНЕРУЄ РОЗМІТКУ ТА ПОМІЩАЄ ЇЇ В DOM
-function createMarkup(arr) {
-    const markup = arr.map(
-    ({ name, capital, population, flags, languages }) =>
-      `
-      <img
-        src="${flags.svg}" 
-        alt="${name.official}" 
-        width="120" 
-        height="80">
-      <h1 class="country-info__title">${name.official}</h1>
+function createMarkupInfo(countries) {
+    const markup = countries.map(
+        ({ capital, population, languages }) => {
+            return `
       <ul class="country-info__list">
           <li class="country-info__item">
           <span>Capital:</span>
@@ -49,22 +66,19 @@ function createMarkup(arr) {
           ${population}
           </li>
           <li class="country-info__item">
-          <span>Lenguages:</span>
-          ${Object.values(languages)}
-          </li>
-      </ul>
-  `
-  );
+          <span>Languages:</span>
+          ${Object.values(languages).join(', ')}</li>
+        </ul>`
+    })
+    .join('')
+  return markup
 }
-    countriesList.insertAdjacentHTML('beforeend', markup)
-
-////  
 
 
+function alertWrongName() {
+  Notiflix.Notify.failure(`Oops, there is no country with that name`)
+}
 
-
-
-
-
-
-
+function alertTooManyMatches() {
+  Notiflix.Notify.info('Too many matches found. Please enter a more specific name.')
+}

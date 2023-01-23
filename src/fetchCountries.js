@@ -1,18 +1,13 @@
-
-function fetchCountries(name) {
-    const BASE_URL = 'https://restcountries.com/v3.1/name/united';
+const fields = 'fields=name,capital,population,flags,languages';
+const BASE_URL = 'https://restcountries.com/v3.1/name/';
     const KEY = "XJlq9OFMcHAy8pAQK7xj";
-    const options = {
-        heders: {
-            Authorization: `Bearer ${KEY}`
-        }
+const options = {
+    heders: {
+        Authorization: `Bearer ${KEY}`
     }
-
-    return fetch(`${BASE_URL}`, options).then(resp => { if (!resp.ok) {
-        throw new Error(resp.statusText)
-    }
-        
-        return resp.json()
-    })
 }
-export { fetchCountries };
+export function fetchCountries(name) {
+  return fetch(`${BASE_URL}${name}?${fields}`, options)
+    .then(response => response.json())
+    .catch(error => console.log(error))
+}
